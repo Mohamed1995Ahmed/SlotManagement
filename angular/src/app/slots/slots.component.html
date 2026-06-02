@@ -37,7 +37,7 @@
       </p>
 
       <button type="submit" [disabled]="loadingGenerate">
-        {{ loadingGenerate ? 'Generating...' : 'Generate Slots' }}
+        {{ loadingGenerate ? 'Generating…' : 'Generate Slots' }}
       </button>
     </form>
 
@@ -47,8 +47,10 @@
 
   <!-- ── Next Available Slots ─────────────────────────────────────────────── -->
   <section class="card">
+
+    <!-- Section header: title + timezone picker -->
     <div class="section-header">
-      <h2>Next Available Slots</h2>
+      <h2>Available Slots</h2>
       <label>
         Display time zone
         <select [ngModel]="viewTimeZone" (ngModelChange)="onTimeZoneChange($event)">
@@ -57,10 +59,42 @@
       </label>
     </div>
 
-    <p *ngIf="loadingSlots">Loading slots...</p>
+    <!-- ── Filter bar ─────────────────────────────────────────────────────── -->
+    <div class="filter-bar">
+      <label class="filter-field">
+        Status
+        <select [(ngModel)]="filterStatus">
+          <option *ngFor="let s of statusOptions" [value]="s.value">{{ s.label }}</option>
+        </select>
+      </label>
+
+      <label class="filter-field">
+        From date
+        <input type="date" [(ngModel)]="filterDateFrom" />
+      </label>
+
+      <label class="filter-field">
+        To date
+        <input type="date" [(ngModel)]="filterDateTo" />
+      </label>
+
+      <div class="filter-actions">
+        <button type="button" (click)="applyFilter()">Search</button>
+        <button type="button" class="secondary" (click)="clearFilter()">Clear</button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <p *ngIf="loadingSlots">Loading slots…</p>
 
     <ng-container *ngIf="!loadingSlots">
 
+      <!-- Results info -->
+      <p class="results-info" *ngIf="totalCount > 0">
+        Showing {{ pageStart }}–{{ pageEnd }} of {{ totalCount }} slots
+      </p>
+
+      <!-- Table -->
       <table *ngIf="slots.length > 0">
         <thead>
           <tr>
@@ -68,17 +102,22 @@
             <th>Local End Time</th>
             <th>Duration (min)</th>
             <th>Time Zone</th>
-            <th>Is Bookable</th>
+            <th>Status</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let slot of slots">
+          <tr *ngFor="let slot of slots" [class.booked-row]="slot.status === 'Booked'">
             <td>{{ slot.localStartTime }}</td>
             <td>{{ slot.localEndTime }}</td>
             <td>{{ slot.durationMinutes }}</td>
             <td>{{ slot.timeZone }}</td>
-            <td>{{ slot.isBookable ? 'Yes' : 'No' }}</td>
+            <td>
+              <span class="badge" [class.badge-available]="slot.status === 'Available'"
+                                  [class.badge-booked]="slot.status === 'Booked'">
+                {{ slot.status }}
+              </span>
+            </td>
             <td>
               <button
                 type="button"
@@ -92,22 +131,47 @@
         </tbody>
       </table>
 
-      <!-- Pagination bar -->
-      <div class="pagination" *ngIf="totalCount > 0">
-        <button type="button" (click)="prevPage()" [disabled]="!hasPrev">&#8592; Prev</button>
+      <p *ngIf="slots.length === 0">No slots match the current filters.</p>
 
-        <span class="page-info">
-          {{ pageStart }}–{{ pageEnd }} of {{ totalCount }}
-          &nbsp;|&nbsp;
-          Page {{ currentPage + 1 }} of {{ totalPages }}
-        </span>
+      <!-- ── Numbered Pagination ─────────────────────────────────────────── -->
+      <nav class="pagination" *ngIf="totalPages > 1" aria-label="Pagination">
 
-        <button type="button" (click)="nextPage()" [disabled]="!hasNext">Next &#8594;</button>
-      </div>
+        <!-- Prev -->
+        <button type="button"
+                class="page-btn"
+                [disabled]="currentPage === 0"
+                (click)="goToPage(currentPage - 1)"
+                aria-label="Previous page">
+          &#8592;
+        </button>
 
-      <p *ngIf="slots.length === 0">
-        No available slots found. Generate slots first.
-      </p>
+        <!-- Page numbers + ellipsis -->
+        <ng-container *ngFor="let p of pageNumbers">
+          <!-- Ellipsis -->
+          <span *ngIf="p === null" class="ellipsis">…</span>
+
+          <!-- Page button -->
+          <button *ngIf="p !== null"
+                  type="button"
+                  class="page-btn"
+                  [class.active]="p - 1 === currentPage"
+                  (click)="goToPage(p - 1)"
+                  [attr.aria-label]="'Page ' + p"
+                  [attr.aria-current]="p - 1 === currentPage ? 'page' : null">
+            {{ p }}
+          </button>
+        </ng-container>
+
+        <!-- Next -->
+        <button type="button"
+                class="page-btn"
+                [disabled]="currentPage === totalPages - 1"
+                (click)="goToPage(currentPage + 1)"
+                aria-label="Next page">
+          &#8594;
+        </button>
+
+      </nav>
 
     </ng-container>
   </section>

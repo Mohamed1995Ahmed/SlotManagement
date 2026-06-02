@@ -36,13 +36,32 @@ public class GetNextAvailableSlotsInput
     [Required]
     public string TimeZone { get; set; } = default!;
 
-    /// <summary>Number of items per page (1–100, default 20).</summary>
+    /// <summary>Items per page (1–100, default 10).</summary>
     [Range(1, 100)]
-    public int PageSize { get; set; } = 20;
+    public int PageSize { get; set; } = 10;
 
     /// <summary>Zero-based page index.</summary>
     [Range(0, int.MaxValue)]
     public int Page { get; set; } = 0;
+
+    // ── Filters ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Filter by status: "available", "booked", or null / empty = all.
+    /// </summary>
+    public string? StatusFilter { get; set; }
+
+    /// <summary>
+    /// ISO date string (YYYY-MM-DD). Only slots starting on or after this date
+    /// (interpreted in the requested TimeZone) are returned.
+    /// </summary>
+    public string? DateFrom { get; set; }
+
+    /// <summary>
+    /// ISO date string (YYYY-MM-DD). Only slots starting on or before this date
+    /// (interpreted in the requested TimeZone) are returned.
+    /// </summary>
+    public string? DateTo { get; set; }
 }
 
 public class SlotDto
@@ -53,4 +72,5 @@ public class SlotDto
     public string TimeZone { get; set; } = default!;
     public int DurationMinutes { get; set; }
     public bool IsBookable { get; set; }
+    public string Status { get; set; } = default!;
 }

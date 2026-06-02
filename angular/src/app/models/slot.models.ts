@@ -16,6 +16,7 @@ export interface SlotDto {
   timeZone: string;
   durationMinutes: number;
   isBookable: boolean;
+  status: string;
 }
 
 /** Matches ABP's PagedResultDto<T> shape */
@@ -24,8 +25,20 @@ export interface PagedResult<T> {
   items: T[];
 }
 
+export interface SlotFilter {
+  statusFilter?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 export const SUPPORTED_TIME_ZONES = [
   'Africa/Cairo',
   'America/New_York',
   'Europe/London'
+];
+
+export const STATUS_OPTIONS = [
+  { label: 'All',       value: ''          },
+  { label: 'Available', value: 'available' },
+  { label: 'Booked',    value: 'booked'    }
 ];
