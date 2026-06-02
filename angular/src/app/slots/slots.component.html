@@ -1,0 +1,114 @@
+<div class="page">
+  <header>
+    <h1>Slot Management</h1>
+    <p>Configure slot generation and view the next available slots in a selected time zone.</p>
+  </header>
+
+  <!-- ── Generate Slots ──────────────────────────────────────────────────── -->
+  <section class="card">
+    <h2>Generate Slots</h2>
+    <form [formGroup]="generateForm" (ngSubmit)="generate()">
+      <div class="grid">
+        <label>
+          Start date
+          <input type="date" formControlName="startDate" />
+        </label>
+
+        <label>
+          End date
+          <input type="date" formControlName="endDate" />
+        </label>
+
+        <label>
+          Time zone
+          <select formControlName="timeZone">
+            <option *ngFor="let tz of timeZones" [value]="tz">{{ tz }}</option>
+          </select>
+        </label>
+
+        <label>
+          Slot duration (minutes)
+          <input type="number" min="1" formControlName="slotDuration" />
+        </label>
+      </div>
+
+      <p class="error" *ngIf="generateForm.errors?.['dateRange'] && generateForm.touched">
+        Start date must be on or before end date.
+      </p>
+
+      <button type="submit" [disabled]="loadingGenerate">
+        {{ loadingGenerate ? 'Generating...' : 'Generate Slots' }}
+      </button>
+    </form>
+
+    <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
+    <p class="error"   *ngIf="errorMessage">{{ errorMessage }}</p>
+  </section>
+
+  <!-- ── Next Available Slots ─────────────────────────────────────────────── -->
+  <section class="card">
+    <div class="section-header">
+      <h2>Next Available Slots</h2>
+      <label>
+        Display time zone
+        <select [ngModel]="viewTimeZone" (ngModelChange)="onTimeZoneChange($event)">
+          <option *ngFor="let tz of timeZones" [value]="tz">{{ tz }}</option>
+        </select>
+      </label>
+    </div>
+
+    <p *ngIf="loadingSlots">Loading slots...</p>
+
+    <ng-container *ngIf="!loadingSlots">
+
+      <table *ngIf="slots.length > 0">
+        <thead>
+          <tr>
+            <th>Local Start Time</th>
+            <th>Local End Time</th>
+            <th>Duration (min)</th>
+            <th>Time Zone</th>
+            <th>Is Bookable</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let slot of slots">
+            <td>{{ slot.localStartTime }}</td>
+            <td>{{ slot.localEndTime }}</td>
+            <td>{{ slot.durationMinutes }}</td>
+            <td>{{ slot.timeZone }}</td>
+            <td>{{ slot.isBookable ? 'Yes' : 'No' }}</td>
+            <td>
+              <button
+                type="button"
+                class="secondary"
+                *ngIf="slot.isBookable"
+                (click)="bookSlot(slot)">
+                Book
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pagination bar -->
+      <div class="pagination" *ngIf="totalCount > 0">
+        <button type="button" (click)="prevPage()" [disabled]="!hasPrev">&#8592; Prev</button>
+
+        <span class="page-info">
+          {{ pageStart }}–{{ pageEnd }} of {{ totalCount }}
+          &nbsp;|&nbsp;
+          Page {{ currentPage + 1 }} of {{ totalPages }}
+        </span>
+
+        <button type="button" (click)="nextPage()" [disabled]="!hasNext">Next &#8594;</button>
+      </div>
+
+      <p *ngIf="slots.length === 0">
+        No available slots found. Generate slots first.
+      </p>
+
+    </ng-container>
+  </section>
+</div>
