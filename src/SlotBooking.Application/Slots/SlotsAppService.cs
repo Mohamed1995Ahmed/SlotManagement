@@ -21,45 +21,66 @@ public class SlotsAppService : ApplicationService, ISlotsAppService
         _slotGenerator = slotGenerator;
     }
 
+    // ── Generate ──────────────────────────────────────────────────────────────
+
     public async Task<GenerateSlotsResultDto> GenerateAsync(GenerateSlotsInput input)
     {
         ValidateGenerateInput(input);
 
         var startDate = LocalDatePattern.Iso.Parse(input.StartDate).Value;
-        var endDate = LocalDatePattern.Iso.Parse(input.EndDate).Value;
-        var timeZone = DateTimeZoneProviders.Tzdb[input.TimeZone];
+        var endDate   = LocalDatePattern.Iso.Parse(input.EndDate).Value;
+        var timeZone  = DateTimeZoneProviders.Tzdb[input.TimeZone];
 
         var slots = _slotGenerator.Generate(
-            startDate,
-            endDate,
-            timeZone,
-            input.SlotDuration,
-            input.TimeZone);
+            startDate, endDate, timeZone, input.SlotDuration, input.TimeZone);
 
         await _slotRepository.InsertManyAsync(slots, autoSave: true);
 
-        return new GenerateSlotsResultDto
-        {
-            TotalSlotsCreated = slots.Count
-        };
+        return new GenerateSlotsResultDto { TotalSlotsCreated = slots.Count };
     }
+
+    // ── Query ─────────────────────────────────────────────────────────────────
 
     public async Task<PagedResultDto<SlotDto>> GetNextAvailableAsync(GetNextAvailableSlotsInput input)
     {
         ValidateTimeZone(input.TimeZone);
 
         var timeZone = DateTimeZoneProviders.Tzdb[input.TimeZone];
-        var now = SystemClock.Instance.GetCurrentInstant();
+        var now      = SystemClock.Instance.GetCurrentInstant();
 
         var queryable = await _slotRepository.GetQueryableAsync();
 
-        var filtered = queryable
-            .Where(x => x.Status == SlotStatus.Available && x.StartInstant > now)
-            .OrderBy(x => x.StartInstant);
+        // ── Status filter ────────────────────────────────────────────────────
+        var status = ParseStatusFilter(input.StatusFilter);
+        var q = status.HasValue
+            ? queryable.Where(x => x.Status == status.Value)
+            : queryable; // "all" — no status restriction
 
-        var totalCount = filtered.Count();
+        // Future-only when viewing "available" or no filter (default behaviour)
+        if (!status.HasValue || status == SlotStatus.Available)
+            q = q.Where(x => x.StartInstant > now);
 
-        var items = filtered
+        // ── Date range filter (interpreted in the requested time zone) ────────
+        if (!string.IsNullOrWhiteSpace(input.DateFrom))
+        {
+            var fromDate    = LocalDatePattern.Iso.Parse(input.DateFrom).Value;
+            var fromInstant = fromDate.AtStartOfDayInZone(timeZone).ToInstant();
+            q = q.Where(x => x.StartInstant >= fromInstant);
+        }
+
+        if (!string.IsNullOrWhiteSpace(input.DateTo))
+        {
+            var toDate    = LocalDatePattern.Iso.Parse(input.DateTo).Value;
+            // include the whole last day
+            var toInstant = toDate.PlusDays(1).AtStartOfDayInZone(timeZone).ToInstant();
+            q = q.Where(x => x.StartInstant < toInstant);
+        }
+
+        q = q.OrderBy(x => x.StartInstant);
+
+        var totalCount = q.Count();
+
+        var items = q
             .Skip(input.Page * input.PageSize)
             .Take(input.PageSize)
             .ToList();
@@ -71,20 +92,27 @@ public class SlotsAppService : ApplicationService, ISlotsAppService
         return new PagedResultDto<SlotDto>(totalCount, dtos);
     }
 
+    // ── Book ──────────────────────────────────────────────────────────────────
+
     public async Task BookAsync(Guid id)
     {
         var slot = await _slotRepository.GetAsync(id);
         if (slot.Status == SlotStatus.Booked)
-        {
-            throw new BusinessException("SlotBooking:SlotAlreadyBooked")
-                .WithData("SlotId", id);
-        }
+            throw new BusinessException("SlotBooking:SlotAlreadyBooked").WithData("SlotId", id);
 
         slot.Book();
         await _slotRepository.UpdateAsync(slot, autoSave: true);
     }
 
-    // ── Validation ────────────────────────────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static SlotStatus? ParseStatusFilter(string? filter) =>
+        filter?.ToLowerInvariant() switch
+        {
+            "available" => SlotStatus.Available,
+            "booked"    => SlotStatus.Booked,
+            _           => null
+        };
 
     private static void ValidateGenerateInput(GenerateSlotsInput input)
     {
@@ -116,8 +144,6 @@ public class SlotsAppService : ApplicationService, ISlotsAppService
                 .WithData("TimeZone", timeZoneId);
     }
 
-    // ── Mapping ───────────────────────────────────────────────────────────────
-
     private static SlotDto MapToDto(Slot slot, DateTimeZone timeZone, Instant now, string timeZoneId)
     {
         var localStart      = SlotTimeFormatter.ToZonedDateTime(slot.StartInstant, timeZone);
@@ -126,12 +152,13 @@ public class SlotsAppService : ApplicationService, ISlotsAppService
 
         return new SlotDto
         {
-            Id             = slot.Id,
-            LocalStartTime = SlotTimeFormatter.FormatLocalTime(localStart),
-            LocalEndTime   = SlotTimeFormatter.FormatLocalTime(localEnd),
-            TimeZone       = timeZoneId,
+            Id              = slot.Id,
+            LocalStartTime  = SlotTimeFormatter.FormatLocalTime(localStart),
+            LocalEndTime    = SlotTimeFormatter.FormatLocalTime(localEnd),
+            TimeZone        = timeZoneId,
             DurationMinutes = durationMinutes,
-            IsBookable     = slot.IsBookable(now)
+            IsBookable      = slot.IsBookable(now),
+            Status          = slot.Status.ToString()
         };
     }
 }

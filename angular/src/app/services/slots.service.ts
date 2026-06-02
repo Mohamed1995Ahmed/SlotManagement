@@ -6,7 +6,8 @@ import {
   GenerateSlotsInput,
   GenerateSlotsResult,
   PagedResult,
-  SlotDto
+  SlotDto,
+  SlotFilter
 } from '../models/slot.models';
 
 @Injectable({ providedIn: 'root' })
@@ -21,12 +22,23 @@ export class SlotsService {
   getNextAvailable(
     timeZone: string,
     page = 0,
-    pageSize = 20
+    pageSize = 10,
+    filter: SlotFilter = {}
   ): Observable<PagedResult<SlotDto>> {
-    const params = new HttpParams()
+    let params = new HttpParams()
       .set('timeZone', timeZone)
       .set('page', page.toString())
       .set('pageSize', pageSize.toString());
+
+    if (filter.statusFilter) {
+      params = params.set('statusFilter', filter.statusFilter);
+    }
+    if (filter.dateFrom) {
+      params = params.set('dateFrom', filter.dateFrom);
+    }
+    if (filter.dateTo) {
+      params = params.set('dateTo', filter.dateTo);
+    }
 
     return this.http.get<PagedResult<SlotDto>>(`${this.baseUrl}/next`, { params });
   }
