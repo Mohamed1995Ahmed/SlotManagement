@@ -16,6 +16,7 @@ import {
   SUPPORTED_TIME_ZONES
 } from '../models/slot.models';
 import { SlotsService } from '../services/slots.service';
+import { TimezoneSelectorComponent } from '../shared/timezone-selector/timezone-selector.component';
 
 const WINDOW = 3;
 
@@ -55,7 +56,7 @@ function bothInPastValidator(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-slots',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, TimezoneSelectorComponent],
   templateUrl: './slots.component.html',
   styleUrl: './slots.component.scss'
 })
@@ -64,22 +65,23 @@ export class SlotsComponent implements OnInit {
   private readonly slotsService = inject(SlotsService);
 
   readonly timeZones     = SUPPORTED_TIME_ZONES;
+  readonly allTimeZones  = SUPPORTED_TIME_ZONES;
   readonly statusOptions = STATUS_OPTIONS;
   readonly pageSize      = 10;
 
-  // ── Generate form ──────────────────────────────────────────────────────────
+  private readonly DEFAULT_TZ = 'Africa/Cairo';
+
   generateForm = this.fb.nonNullable.group(
     {
       startDate:    ['', Validators.required],
       endDate:      ['', Validators.required],
-      timeZone:     [this.timeZones[0], Validators.required],
+      timeZone:     [this.DEFAULT_TZ, Validators.required],
       slotDuration: [30, [Validators.required, Validators.min(1)]]
     },
     { validators: [dateOrderValidator, bothInPastValidator] }
   );
 
-  // ── View state ─────────────────────────────────────────────────────────────
-  viewTimeZone = this.timeZones[0];
+  viewTimeZone = this.DEFAULT_TZ;
   slots: SlotDto[]   = [];
   totalCount         = 0;
   currentPage        = 0;
@@ -224,6 +226,10 @@ export class SlotsComponent implements OnInit {
     this.viewTimeZone = timeZone;
     this.currentPage  = 0;
     this.loadSlots();
+  }
+
+  onGenerateTimezoneChange(tz: string): void {
+    this.generateForm.patchValue({ timeZone: tz });
   }
 
   goToPage(page: number): void {
