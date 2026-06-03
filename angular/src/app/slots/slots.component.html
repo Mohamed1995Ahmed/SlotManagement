@@ -11,12 +11,22 @@
       <div class="grid">
         <label>
           Start date
-          <input type="date" formControlName="startDate" />
+          <input type="date" formControlName="startDate"
+                 [class.input-error]="generateForm.get('startDate')?.invalid && generateForm.get('startDate')?.touched" />
+          <span class="field-error"
+                *ngIf="generateForm.get('startDate')?.hasError('required') && generateForm.get('startDate')?.touched">
+            Start date is required.
+          </span>
         </label>
 
         <label>
           End date
-          <input type="date" formControlName="endDate" />
+          <input type="date" formControlName="endDate"
+                 [class.input-error]="generateForm.get('endDate')?.invalid && generateForm.get('endDate')?.touched" />
+          <span class="field-error"
+                *ngIf="generateForm.get('endDate')?.hasError('required') && generateForm.get('endDate')?.touched">
+            End date is required.
+          </span>
         </label>
 
         <label>
@@ -28,12 +38,33 @@
 
         <label>
           Slot duration (minutes)
-          <input type="number" min="1" formControlName="slotDuration" />
+          <input type="number" min="1" formControlName="slotDuration"
+                 [class.input-error]="generateForm.get('slotDuration')?.invalid && generateForm.get('slotDuration')?.touched" />
+          <span class="field-error"
+                *ngIf="generateForm.get('slotDuration')?.hasError('required') && generateForm.get('slotDuration')?.touched">
+            Duration is required.
+          </span>
+          <span class="field-error"
+                *ngIf="generateForm.get('slotDuration')?.hasError('min') && generateForm.get('slotDuration')?.touched">
+            Duration must be at least 1 minute.
+          </span>
         </label>
       </div>
 
-      <p class="error" *ngIf="generateForm.errors?.['dateRange'] && generateForm.touched">
-        Start date must be on or before end date.
+      <!-- Cross-field errors — shown after user touches the form -->
+      <p class="field-error block-error"
+         *ngIf="generateForm.hasError('dateOrder') && generateForm.touched">
+        ✕ Start date must be on or before end date.
+      </p>
+      <p class="field-error block-error"
+         *ngIf="generateForm.hasError('bothInPast') && generateForm.touched">
+        ✕ Both dates are in the past. Please choose an end date of today or later.
+      </p>
+
+      <!-- Inline advisory warning (non-blocking) -->
+      <p class="warning-inline"
+         *ngIf="startInPastWarning && generateForm.touched && !generateForm.hasError('dateOrder')">
+        ⚠ Start date is in the past. Slots will be generated from today onwards.
       </p>
 
       <button type="submit" [disabled]="loadingGenerate">
@@ -42,6 +73,7 @@
     </form>
 
     <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
+    <p class="warning" *ngIf="warningMessage">⚠ {{ warningMessage }}</p>
     <p class="error"   *ngIf="errorMessage">{{ errorMessage }}</p>
   </section>
 
