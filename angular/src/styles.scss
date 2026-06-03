@@ -2,3 +2,14 @@ body {
   margin: 0;
   background: #f8fafc;
 }
+
+/* RTL — applied automatically when LocalizationService sets dir="rtl" */
+[dir='rtl'] body {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+}
+
+/* Flip table cell alignment for RTL */
+[dir='rtl'] th,
+[dir='rtl'] td {
+  text-align: right;
+}

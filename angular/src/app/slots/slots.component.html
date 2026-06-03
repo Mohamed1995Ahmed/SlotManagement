@@ -1,211 +1,224 @@
 <div class="page">
   <header>
-    <h1>Slot Management</h1>
-    <p>Configure slot generation and view the next available slots in a selected time zone.</p>
+    <h1>{{ 'AppTitle' | abpLocalization }}</h1>
+    <p>{{ 'AppSubtitle' | abpLocalization }}</p>
   </header>
 
   <!-- ── Generate Slots ──────────────────────────────────────────────────── -->
   <section class="card">
-    <h2>Generate Slots</h2>
+    <h2>{{ 'Title:GenerateSlots' | abpLocalization }}</h2>
+
     <form [formGroup]="generateForm" (ngSubmit)="generate()">
       <div class="grid">
+
+        <!-- Start Date -->
         <label>
-          Start date
+          {{ 'Label:StartDate' | abpLocalization }}
           <input type="date" formControlName="startDate"
-                 [class.input-error]="generateForm.get('startDate')?.invalid && generateForm.get('startDate')?.touched" />
+                 [class.input-error]="generateForm.get('startDate')?.invalid
+                                   && generateForm.get('startDate')?.touched" />
           <span class="field-error"
-                *ngIf="generateForm.get('startDate')?.hasError('required') && generateForm.get('startDate')?.touched">
-            Start date is required.
+                *ngIf="generateForm.get('startDate')?.hasError('required')
+                    && generateForm.get('startDate')?.touched">
+            {{ 'Validation:StartDateRequired' | abpLocalization }}
           </span>
         </label>
 
+        <!-- End Date -->
         <label>
-          End date
+          {{ 'Label:EndDate' | abpLocalization }}
           <input type="date" formControlName="endDate"
-                 [class.input-error]="generateForm.get('endDate')?.invalid && generateForm.get('endDate')?.touched" />
+                 [class.input-error]="generateForm.get('endDate')?.invalid
+                                   && generateForm.get('endDate')?.touched" />
           <span class="field-error"
-                *ngIf="generateForm.get('endDate')?.hasError('required') && generateForm.get('endDate')?.touched">
-            End date is required.
+                *ngIf="generateForm.get('endDate')?.hasError('required')
+                    && generateForm.get('endDate')?.touched">
+            {{ 'Validation:EndDateRequired' | abpLocalization }}
           </span>
         </label>
 
+        <!-- Time Zone -->
         <label>
-          Time zone
+          {{ 'Label:TimeZone' | abpLocalization }}
           <app-timezone-selector
             [allZones]="allTimeZones"
             [value]="generateForm.get('timeZone')?.value ?? ''"
-            (valueChange)="onGenerateTimezoneChange($event)"
-            placeholder="Search time zone…">
+            (valueChange)="onGenerateTimezoneChange($event)">
           </app-timezone-selector>
         </label>
 
+        <!-- Slot Duration -->
         <label>
-          Slot duration (minutes)
+          {{ 'Label:SlotDuration' | abpLocalization }}
           <input type="number" min="1" formControlName="slotDuration"
-                 [class.input-error]="generateForm.get('slotDuration')?.invalid && generateForm.get('slotDuration')?.touched" />
+                 [class.input-error]="generateForm.get('slotDuration')?.invalid
+                                   && generateForm.get('slotDuration')?.touched" />
           <span class="field-error"
-                *ngIf="generateForm.get('slotDuration')?.hasError('required') && generateForm.get('slotDuration')?.touched">
-            Duration is required.
+                *ngIf="generateForm.get('slotDuration')?.hasError('required')
+                    && generateForm.get('slotDuration')?.touched">
+            {{ 'Validation:DurationRequired' | abpLocalization }}
           </span>
           <span class="field-error"
-                *ngIf="generateForm.get('slotDuration')?.hasError('min') && generateForm.get('slotDuration')?.touched">
-            Duration must be at least 1 minute.
+                *ngIf="generateForm.get('slotDuration')?.hasError('min')
+                    && generateForm.get('slotDuration')?.touched">
+            {{ 'Validation:DurationMin' | abpLocalization }}
           </span>
         </label>
+
       </div>
 
-      <!-- Cross-field errors — shown after user touches the form -->
+      <!-- Cross-field validation errors -->
       <p class="field-error block-error"
          *ngIf="generateForm.hasError('dateOrder') && generateForm.touched">
-        ✕ Start date must be on or before end date.
+        {{ 'Validation:DateOrder' | abpLocalization }}
       </p>
       <p class="field-error block-error"
          *ngIf="generateForm.hasError('bothInPast') && generateForm.touched">
-        ✕ Both dates are in the past. Please choose an end date of today or later.
+        {{ 'Validation:BothInPast' | abpLocalization }}
       </p>
 
-      <!-- Inline advisory warning (non-blocking) -->
+      <!-- Advisory warning (non-blocking) -->
       <p class="warning-inline"
-         *ngIf="startInPastWarning && generateForm.touched && !generateForm.hasError('dateOrder')">
-        ⚠ Start date is in the past. Slots will be generated from today onwards.
+         *ngIf="startInPastWarning
+             && generateForm.touched
+             && !generateForm.hasError('dateOrder')">
+        {{ 'Warning:StartInPast' | abpLocalization }}
       </p>
 
       <button type="submit" [disabled]="loadingGenerate">
-        {{ loadingGenerate ? 'Generating…' : 'Generate Slots' }}
+        {{ (loadingGenerate ? 'Button:Generating' : 'Button:GenerateSlots') | abpLocalization }}
       </button>
     </form>
 
     <p class="success" *ngIf="successMessage">{{ successMessage }}</p>
-    <p class="warning" *ngIf="warningMessage">⚠ {{ warningMessage }}</p>
+    <p class="warning" *ngIf="warningMessage">{{ warningMessage }}</p>
     <p class="error"   *ngIf="errorMessage">{{ errorMessage }}</p>
   </section>
 
-  <!-- ── Next Available Slots ─────────────────────────────────────────────── -->
+  <!-- ── Available Slots ─────────────────────────────────────────────────── -->
   <section class="card">
 
-    <!-- Section header: title + timezone picker -->
     <div class="section-header">
-      <h2>Available Slots</h2>
+      <h2>{{ 'Title:AvailableSlots' | abpLocalization }}</h2>
       <label>
-        Display time zone
+        {{ 'Label:DisplayTimeZone' | abpLocalization }}
         <app-timezone-selector
           [allZones]="allTimeZones"
           [value]="viewTimeZone"
-          (valueChange)="onTimeZoneChange($event)"
-          placeholder="Search time zone…">
+          (valueChange)="onTimeZoneChange($event)">
         </app-timezone-selector>
       </label>
     </div>
 
-    <!-- ── Filter bar ─────────────────────────────────────────────────────── -->
+    <!-- Filter bar -->
     <div class="filter-bar">
+
       <label class="filter-field">
-        Status
+        {{ 'Label:Status' | abpLocalization }}
         <select [(ngModel)]="filterStatus">
-          <option *ngFor="let s of statusOptions" [value]="s.value">{{ s.label }}</option>
+          <option *ngFor="let s of statusOptions" [value]="s.value">
+            {{ s.labelKey | abpLocalization }}
+          </option>
         </select>
       </label>
 
       <label class="filter-field">
-        From date
+        {{ 'Label:FromDate' | abpLocalization }}
         <input type="date" [(ngModel)]="filterDateFrom" />
       </label>
 
       <label class="filter-field">
-        To date
+        {{ 'Label:ToDate' | abpLocalization }}
         <input type="date" [(ngModel)]="filterDateTo" />
       </label>
 
       <div class="filter-actions">
-        <button type="button" (click)="applyFilter()">Search</button>
-        <button type="button" class="secondary" (click)="clearFilter()">Clear</button>
+        <button type="button" (click)="applyFilter()">
+          {{ 'Button:Search' | abpLocalization }}
+        </button>
+        <button type="button" class="secondary" (click)="clearFilter()">
+          {{ 'Button:Clear' | abpLocalization }}
+        </button>
       </div>
+
     </div>
 
-    <!-- Loading -->
-    <p *ngIf="loadingSlots">Loading slots…</p>
+    <!-- Loading state -->
+    <p *ngIf="loadingSlots">{{ 'Message:Loading' | abpLocalization }}</p>
 
     <ng-container *ngIf="!loadingSlots">
 
-      <!-- Results info -->
+      <!-- Result count -->
       <p class="results-info" *ngIf="totalCount > 0">
-        Showing {{ pageStart }}–{{ pageEnd }} of {{ totalCount }} slots
+        {{ 'Message:Showing' | abpLocalization:[pageStart.toString(), pageEnd.toString(), totalCount.toString()] }}
       </p>
 
-      <!-- Table -->
+      <!-- Slots table -->
       <table *ngIf="slots.length > 0">
         <thead>
           <tr>
-            <th>Local Start Time</th>
-            <th>Local End Time</th>
-            <th>Duration (min)</th>
-            <th>Time Zone</th>
-            <th>Status</th>
+            <th>{{ 'Label:LocalStartTime' | abpLocalization }}</th>
+            <th>{{ 'Label:LocalEndTime'   | abpLocalization }}</th>
+            <th>{{ 'Label:Duration'       | abpLocalization }}</th>
+            <th>{{ 'Label:TimeZone'       | abpLocalization }}</th>
+            <th>{{ 'Label:Status'         | abpLocalization }}</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let slot of slots" [class.booked-row]="slot.status === 'Booked'">
-            <td>{{ slot.localStartTime }}</td>
-            <td>{{ slot.localEndTime }}</td>
+            <td>{{ slot.localStartTime | localDate }}</td>
+            <td>{{ slot.localEndTime | localDate }}</td>
             <td>{{ slot.durationMinutes }}</td>
-            <td>{{ slot.timeZone }}</td>
+            <td>{{ slot.timeZone | tzName }}</td>
             <td>
-              <span class="badge" [class.badge-available]="slot.status === 'Available'"
-                                  [class.badge-booked]="slot.status === 'Booked'">
-                {{ slot.status }}
+              <span class="badge"
+                    [class.badge-available]="slot.status === 'Available'"
+                    [class.badge-booked]="slot.status === 'Booked'">
+                {{ (slot.status === 'Available' ? 'Status:Available' : 'Status:Booked') | abpLocalization }}
               </span>
             </td>
             <td>
-              <button
-                type="button"
-                class="secondary"
-                *ngIf="slot.isBookable"
-                (click)="bookSlot(slot)">
-                Book
+              <button type="button" class="secondary"
+                      *ngIf="slot.isBookable"
+                      (click)="bookSlot(slot)">
+                {{ 'Button:Book' | abpLocalization }}
               </button>
             </td>
           </tr>
         </tbody>
       </table>
 
-      <p *ngIf="slots.length === 0">No slots match the current filters.</p>
+      <!-- Empty state -->
+      <p *ngIf="slots.length === 0">{{ 'Message:NoSlots' | abpLocalization }}</p>
 
-      <!-- ── Numbered Pagination ─────────────────────────────────────────── -->
-      <nav class="pagination" *ngIf="totalPages > 1" aria-label="Pagination">
+      <!-- Numbered pagination -->
+      <nav class="pagination" *ngIf="totalPages > 1"
+           [attr.aria-label]="'Title:AvailableSlots' | abpLocalization">
 
-        <!-- Prev -->
-        <button type="button"
-                class="page-btn"
+        <button type="button" class="page-btn"
                 [disabled]="currentPage === 0"
                 (click)="goToPage(currentPage - 1)"
-                aria-label="Previous page">
+                [attr.aria-label]="'Button:PreviousPage' | abpLocalization">
           &#8592;
         </button>
 
-        <!-- Page numbers + ellipsis -->
         <ng-container *ngFor="let p of pageNumbers">
-          <!-- Ellipsis -->
           <span *ngIf="p === null" class="ellipsis">…</span>
-
-          <!-- Page button -->
           <button *ngIf="p !== null"
-                  type="button"
-                  class="page-btn"
+                  type="button" class="page-btn"
                   [class.active]="p - 1 === currentPage"
                   (click)="goToPage(p - 1)"
-                  [attr.aria-label]="'Page ' + p"
+                  [attr.aria-label]="('Label:Page' | abpLocalization) + ' ' + p"
                   [attr.aria-current]="p - 1 === currentPage ? 'page' : null">
             {{ p }}
           </button>
         </ng-container>
 
-        <!-- Next -->
-        <button type="button"
-                class="page-btn"
+        <button type="button" class="page-btn"
                 [disabled]="currentPage === totalPages - 1"
                 (click)="goToPage(currentPage + 1)"
-                aria-label="Next page">
+                [attr.aria-label]="'Button:NextPage' | abpLocalization">
           &#8594;
         </button>
 

@@ -1,0 +1,69 @@
+{
+  "culture": "en",
+  "texts": {
+    "AppTitle": "Slot Management",
+    "AppSubtitle": "Configure slot generation and view the next available slots in a selected time zone.",
+
+    "Menu:SlotManagement": "Slot Management",
+
+    "Label:StartDate": "Start Date",
+    "Label:EndDate": "End Date",
+    "Label:TimeZone": "Time Zone",
+    "Label:SlotDuration": "Slot Duration (minutes)",
+    "Label:DisplayTimeZone": "Display Time Zone",
+    "Label:Status": "Status",
+    "Label:FromDate": "From Date",
+    "Label:ToDate": "To Date",
+    "Label:LocalStartTime": "Local Start Time",
+    "Label:LocalEndTime": "Local End Time",
+    "Label:Duration": "Duration (min)",
+    "Label:SearchTimeZone": "Search time zone…",
+
+    "Button:GenerateSlots": "Generate Slots",
+    "Button:Generating": "Generating…",
+    "Button:Search": "Search",
+    "Button:Clear": "Clear",
+    "Button:Book": "Book",
+
+    "Title:GenerateSlots": "Generate Slots",
+    "Title:AvailableSlots": "Available Slots",
+
+    "Status:All": "All",
+    "Status:Available": "Available",
+    "Status:Booked": "Booked",
+
+    "Validation:Required": "{0} is required.",
+    "Validation:StartDateRequired": "Start date is required.",
+    "Validation:EndDateRequired": "End date is required.",
+    "Validation:DurationRequired": "Duration is required.",
+    "Validation:DurationMin": "Duration must be at least 1 minute.",
+    "Validation:DateOrder": "✕ Start date must be on or before end date.",
+    "Validation:BothInPast": "✕ Both dates are in the past. Please choose an end date of today or later.",
+    "Validation:InvalidTimeZone": "Invalid time zone identifier.",
+    "Validation:StartDateAfterEndDate": "Start date must be before end date.",
+    "Validation:InvalidSlotDuration": "Slot duration must be greater than zero.",
+
+    "Warning:StartInPast": "⚠ Start date is in the past. Slots will be generated from today onwards.",
+
+    "Message:SlotsGenerated": "Generated {0} slots successfully.",
+    "Message:SlotBooked": "Slot booked: {0}",
+    "Message:FailedGenerate": "Failed to generate slots.",
+    "Message:FailedLoad": "Failed to load slots.",
+    "Message:FailedBook": "Failed to book slot.",
+    "Message:Loading": "Loading slots…",
+    "Message:NoSlots": "No slots match the current filters.",
+    "Message:Showing": "Showing {0}–{1} of {2} slots",
+    "Message:NoMatchFound": "No match found.",
+
+    "SlotBooking:SlotAlreadyBooked": "This slot has already been booked.",
+    "SlotBooking:InvalidStartDate": "Invalid start date.",
+    "SlotBooking:InvalidEndDate": "Invalid end date.",
+    "SlotBooking:StartDateAfterEndDate": "Start date must be before end date.",
+    "SlotBooking:InvalidSlotDuration": "Slot duration must be greater than zero.",
+    "SlotBooking:InvalidTimeZone": "Invalid time zone: {TimeZone}",
+    "SlotBooking:DateRangeEntirelyInPast": "The entire date range is in the past. End date must be today or later.",
+
+    "Language:English": "English",
+    "Language:Arabic": "العربية"
+  }
+}

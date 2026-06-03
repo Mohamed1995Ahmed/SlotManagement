@@ -1,43 +1,58 @@
 import {
+  ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
   HostListener,
   Input,
+  inject,
   OnChanges,
+  OnDestroy,
+  OnInit,
   Output,
   SimpleChanges
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
+import { AbpLocalizationPipe } from '../../core/localization/abp-localization.pipe';
+import { LocalizationService } from '../../core/localization/localization.service';
+import { TIMEZONE_NAMES_AR } from '../../core/localization/timezone-names';
+
+interface TzOption {
+  id: string;       // TZDB identifier — always sent to backend
+  display: string;  // Localised display name shown to the user
+}
 
 @Component({
   selector: 'app-timezone-selector',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AbpLocalizationPipe],
   template: `
     <div class="tz-wrapper">
       <input
         class="tz-input"
         type="text"
-        [placeholder]="placeholder"
+        [placeholder]="'Label:SearchTimeZone' | abpLocalization"
         [(ngModel)]="query"
         (ngModelChange)="onQueryChange()"
         (focus)="open = true"
         autocomplete="off"
-        [attr.aria-label]="placeholder"
+        [attr.aria-label]="'Label:SearchTimeZone' | abpLocalization"
       />
       <ul class="tz-dropdown" *ngIf="open && filtered.length > 0" role="listbox">
         <li
-          *ngFor="let tz of filtered"
+          *ngFor="let opt of filtered"
           class="tz-option"
-          [class.highlighted]="tz === value"
-          (mousedown)="select(tz)"
+          [class.highlighted]="opt.id === value"
+          (mousedown)="select(opt)"
           role="option"
-          [attr.aria-selected]="tz === value"
-        >{{ tz }}</li>
+          [attr.aria-selected]="opt.id === value"
+        >{{ opt.display }}</li>
       </ul>
-      <p class="tz-empty" *ngIf="open && filtered.length === 0">No match found.</p>
+      <p class="tz-empty" *ngIf="open && query && filtered.length === 0">
+        {{ 'Label:NoMatchFound' | abpLocalization }}
+      </p>
     </div>
   `,
   styles: [`
@@ -94,54 +109,93 @@ import { FormsModule } from '@angular/forms';
     }
   `]
 })
-export class TimezoneSelectorComponent implements OnChanges {
-  @Input() value  = '';
+export class TimezoneSelectorComponent implements OnChanges, OnInit, OnDestroy {
+  @Input() value     = '';
   @Input() allZones: string[] = [];
-  @Input() placeholder = 'Search time zone…';
   @Output() valueChange = new EventEmitter<string>();
 
   query    = '';
-  filtered: string[] = [];
+  filtered: TzOption[] = [];
   open     = false;
 
+  private readonly _el  = inject(ElementRef);
+  private readonly l    = inject(LocalizationService);
+  private readonly cdr  = inject(ChangeDetectorRef);
+  private langSub!: Subscription;
+
+  // ── Lifecycle ────────────────────────────────────────────────────────────
+
+  ngOnInit(): void {
+    // Re-render the input label and dropdown whenever the language switches
+    this.langSub = this.l.currentLang$.subscribe(() => {
+      this.query    = this.displayFor(this.value);
+      this.filtered = this.getFiltered(this.query);
+      this.cdr.markForCheck();
+    });
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['value']) {
-      this.query    = this.value;
-      this.filtered = this.getFiltered(this.value);
-    }
-    if (changes['allZones']) {
+    if (changes['value'] || changes['allZones']) {
+      this.query    = this.displayFor(this.value);
       this.filtered = this.getFiltered(this.query);
     }
   }
+
+  ngOnDestroy(): void {
+    this.langSub?.unsubscribe();
+  }
+
+  // ── Interaction ───────────────────────────────────────────────────────────
 
   onQueryChange(): void {
     this.open     = true;
     this.filtered = this.getFiltered(this.query);
   }
 
-  select(tz: string): void {
-    this.value = tz;
-    this.query = tz;
-    this.open  = false;
-    this.filtered = this.getFiltered(tz);
-    this.valueChange.emit(tz);
+  select(opt: TzOption): void {
+    this.value    = opt.id;
+    this.query    = opt.display;
+    this.open     = false;
+    this.filtered = this.getFiltered(opt.display);
+    this.valueChange.emit(opt.id);
   }
 
   @HostListener('document:click', ['$event.target'])
   onDocumentClick(target: HTMLElement): void {
     if (!this._el.nativeElement.contains(target)) {
       this.open = false;
-      // If user typed something invalid, reset to last valid value
-      if (!this.allZones.includes(this.query)) {
-        this.query = this.value;
-      }
+      // Reset query to localised display of current value if user typed something invalid
+      const lowerQuery = this.query.toLowerCase();
+      const valid = this.allZones.some(
+        z =>
+          z.toLowerCase() === lowerQuery ||
+          this.displayFor(z).toLowerCase() === lowerQuery
+      );
+      if (!valid) this.query = this.displayFor(this.value);
     }
   }
 
-  private getFiltered(q: string): string[] {
-    const term = q.toLowerCase();
-    return this.allZones.filter(z => z.toLowerCase().includes(term)).slice(0, 100);
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /** Localised display name for a TZDB id. */
+  private displayFor(id: string): string {
+    if (!id) return '';
+    return this.l.currentLang === 'ar'
+      ? (TIMEZONE_NAMES_AR[id] ?? id)
+      : id;
   }
 
-  constructor(private _el: ElementRef) {}
+  private getFiltered(q: string): TzOption[] {
+    const term = q.toLowerCase();
+    return this.allZones
+      .filter(id => {
+        const display = this.displayFor(id);
+        return (
+          id.toLowerCase().includes(term) ||
+          display.toLowerCase().includes(term)
+        );
+      })
+      .slice(0, 100)
+      .map(id => ({ id, display: this.displayFor(id) }));
+  }
 }
