@@ -1,10 +1,13 @@
 using NodaTime;
-using Volo.Abp.DependencyInjection;
 using Volo.Abp.Guids;
 
 namespace SlotBooking.Slots;
 
-public class SlotGenerator : ISlotGenerator, ITransientDependency
+/// <summary>
+/// Default implementation of <see cref="ISlotGenerator"/>.
+/// Registered as transient via <see cref="SlotBookingDomainModule"/>.
+/// </summary>
+public class SlotGenerator : ISlotGenerator
 {
     private readonly IGuidGenerator _guidGenerator;
 

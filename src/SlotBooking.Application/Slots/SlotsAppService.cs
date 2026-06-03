@@ -42,19 +42,31 @@ public class SlotsAppService : ApplicationService, ISlotsAppService
                 .WithData("EndDate", input.EndDate)
                 .WithData("Today",   today.ToString());
 
-        // When start is in the past, still iterate from startDate so the day
-        // loop covers today — but pass `now` as notBefore so the generator
-        // skips every individual slot that has already ended.
-        var effectiveStart     = requestedStart < today ? today : requestedStart;
-        var startWasClamped    = requestedStart < today;
+        // Clamp the start date to today when the caller supplied a past date,
+        // so we never iterate over days that have already ended entirely.
+        var effectiveStart  = requestedStart < today ? today : requestedStart;
+        var startWasClamped = requestedStart < today;
 
+        // Always pass `now` as the notBefore cutoff (Scenario B).
+        //
+        // This correctly handles three sub-cases:
+        //   1. startDate in the past  → effectiveStart = today, slots before
+        //      `now` (even earlier today) are skipped.
+        //   2. startDate = today      → startDate == effectiveStart, but slots
+        //      earlier in today that have already ended are still skipped.
+        //   3. startDate in the future → all slots for that day are future by
+        //      definition, so the notBefore filter has no effect.
+        //
+        // Without passing `now` in case 2, generating from "today" would
+        // include slots from 00:00 up to the current minute — those are in the
+        // past and must not be offered as bookable.
         var slots = _slotGenerator.Generate(
             effectiveStart,
             endDate,
             timeZone,
             input.SlotDuration,
             input.TimeZone,
-            notBefore: startWasClamped ? now : null);   // ← precise instant cutoff
+            notBefore: now);   // ← always apply the precise instant cutoff
 
         await _slotRepository.InsertManyAsync(slots, autoSave: true);
 
