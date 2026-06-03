@@ -7,6 +7,8 @@ export interface GenerateSlotsInput {
 
 export interface GenerateSlotsResult {
   totalSlotsCreated: number;
+  /** Set by the server when start date was in the past and clamped to today. */
+  adjustedStartDate?: string;
 }
 
 export interface SlotDto {

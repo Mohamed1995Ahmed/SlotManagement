@@ -17,8 +17,40 @@ import {
 } from '../models/slot.models';
 import { SlotsService } from '../services/slots.service';
 
-/** Max numbered page buttons visible at a time (excluding first/last/ellipsis) */
 const WINDOW = 3;
+
+// ── Custom validators ────────────────────────────────────────────────────────
+
+/** Returns today's date string in YYYY-MM-DD (local browser time). */
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Cross-field validator: startDate must be <= endDate.
+ * Applied at the form group level.
+ */
+function dateOrderValidator(group: AbstractControl): ValidationErrors | null {
+  const start = group.get('startDate')?.value as string;
+  const end   = group.get('endDate')?.value   as string;
+  if (start && end && start > end) {
+    return { dateOrder: true };
+  }
+  return null;
+}
+
+/**
+ * Cross-field validator: both dates must not be entirely in the past.
+ * Applied at the form group level.
+ */
+function bothInPastValidator(group: AbstractControl): ValidationErrors | null {
+  const end   = group.get('endDate')?.value as string;
+  const today = todayStr();
+  if (end && end < today) {
+    return { bothInPast: true };
+  }
+  return null;
+}
 
 @Component({
   selector: 'app-slots',
@@ -43,17 +75,16 @@ export class SlotsComponent implements OnInit {
       timeZone:     [this.timeZones[0], Validators.required],
       slotDuration: [30, [Validators.required, Validators.min(1)]]
     },
-    { validators: [dateRangeValidator] }
+    { validators: [dateOrderValidator, bothInPastValidator] }
   );
 
   // ── View state ─────────────────────────────────────────────────────────────
   viewTimeZone = this.timeZones[0];
-  slots: SlotDto[]           = [];
-  totalCount                 = 0;
-  currentPage                = 0;
-  filter: SlotFilter         = {};
+  slots: SlotDto[]   = [];
+  totalCount         = 0;
+  currentPage        = 0;
+  filter: SlotFilter = {};
 
-  // filter bar fields (bound with ngModel)
   filterStatus   = '';
   filterDateFrom = '';
   filterDateTo   = '';
@@ -61,10 +92,21 @@ export class SlotsComponent implements OnInit {
   generateResult: GenerateSlotsResult | null = null;
   errorMessage    = '';
   successMessage  = '';
+  warningMessage  = '';
   loadingGenerate = false;
   loadingSlots    = false;
 
-  // ── Pagination helpers ─────────────────────────────────────────────────────
+  // ── Convenience getters for template ─────────────────────────────────────
+
+  /** True when start is in the past but end is today/future — warn but allow. */
+  get startInPastWarning(): boolean {
+    const start = this.generateForm.get('startDate')?.value as string;
+    const end   = this.generateForm.get('endDate')?.value   as string;
+    const today = todayStr();
+    return !!(start && end && start < today && end >= today);
+  }
+
+  // ── Pagination helpers ────────────────────────────────────────────────────
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.totalCount / this.pageSize));
   }
@@ -77,14 +119,6 @@ export class SlotsComponent implements OnInit {
     return Math.min((this.currentPage + 1) * this.pageSize, this.totalCount);
   }
 
-  /**
-   * Builds the page-number array shown in the pagination bar.
-   * Always shows first + last page; shows a sliding window of WINDOW pages
-   * around the current page; inserts null as an ellipsis marker.
-   *
-   * Example (totalPages=12, current=5, WINDOW=3):
-   *   [1, null, 4, 5, 6, null, 12]
-   */
   get pageNumbers(): (number | null)[] {
     const total = this.totalPages;
     if (total <= 1) return [];
@@ -99,31 +133,38 @@ export class SlotsComponent implements OnInit {
 
     for (let p = start; p <= end; p++) pages.add(p);
 
-    const sorted  = Array.from(pages).sort((a, b) => a - b);
+    const sorted = Array.from(pages).sort((a, b) => a - b);
     const result: (number | null)[] = [];
 
     for (let i = 0; i < sorted.length; i++) {
-      if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.push(null); // ellipsis
+      if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.push(null);
       result.push(sorted[i]);
     }
     return result;
   }
 
-  // ── Lifecycle ──────────────────────────────────────────────────────────────
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.loadSlots();
   }
 
-  // ── Actions ────────────────────────────────────────────────────────────────
+  // ── Actions ───────────────────────────────────────────────────────────────
   generate(): void {
-    if (this.generateForm.invalid) {
-      this.generateForm.markAllAsTouched();
-      return;
-    }
+    this.generateForm.markAllAsTouched();
+
+    if (this.generateForm.invalid) return;
 
     this.loadingGenerate = true;
     this.errorMessage    = '';
     this.successMessage  = '';
+    this.warningMessage  = '';
+
+    // Warn the user before submitting that start will be clamped server-side
+    if (this.startInPastWarning) {
+      const today = todayStr();
+      this.warningMessage =
+        `Start date is in the past. Slots will be generated from ${today} onwards.`;
+    }
 
     this.slotsService.generate(this.generateForm.getRawValue()).subscribe({
       next: result => {
@@ -134,7 +175,8 @@ export class SlotsComponent implements OnInit {
         this.loadSlots();
       },
       error: err => {
-        this.errorMessage   = err?.error?.error?.message ?? 'Failed to generate slots.';
+        this.errorMessage    = err?.error?.error?.message ?? 'Failed to generate slots.';
+        this.warningMessage  = '';
         this.loadingGenerate = false;
       }
     });
@@ -167,8 +209,8 @@ export class SlotsComponent implements OnInit {
       .getNextAvailable(this.viewTimeZone, this.currentPage, this.pageSize, this.filter)
       .subscribe({
         next: result => {
-          this.slots      = result.items;
-          this.totalCount = result.totalCount;
+          this.slots        = result.items;
+          this.totalCount   = result.totalCount;
           this.loadingSlots = false;
         },
         error: err => {
@@ -201,10 +243,4 @@ export class SlotsComponent implements OnInit {
       }
     });
   }
-}
-
-function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
-  const start = group.get('startDate')?.value;
-  const end   = group.get('endDate')?.value;
-  return start && end && start > end ? { dateRange: true } : null;
 }

@@ -183,4 +183,33 @@ th { font-weight: 600; background: #f8fafc; }
 
 // ── Messages ────────────────────────────────────────────────────────────────
 .success { color: #047857; margin-top: 0.75rem; }
+.warning { color: #92400e; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; padding: 0.6rem 0.9rem; margin-top: 0.75rem; }
 .error   { color: #b91c1c; }
+
+// ── Field-level & cross-field validation ─────────────────────────────────────
+input.input-error,
+select.input-error {
+  border-color: #dc2626;
+  outline-color: #dc2626;
+}
+
+.field-error {
+  color: #dc2626;
+  font-size: 0.82rem;
+  margin-top: 0.2rem;
+}
+
+.block-error {
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+.warning-inline {
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  padding: 0.5rem 0.85rem;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}

@@ -27,16 +27,40 @@ public class SlotsAppService : ApplicationService, ISlotsAppService
     {
         ValidateGenerateInput(input);
 
-        var startDate = LocalDatePattern.Iso.Parse(input.StartDate).Value;
-        var endDate   = LocalDatePattern.Iso.Parse(input.EndDate).Value;
-        var timeZone  = DateTimeZoneProviders.Tzdb[input.TimeZone];
+        var requestedStart = LocalDatePattern.Iso.Parse(input.StartDate).Value;
+        var endDate        = LocalDatePattern.Iso.Parse(input.EndDate).Value;
+        var timeZone       = DateTimeZoneProviders.Tzdb[input.TimeZone];
+
+        // Determine "today" in the requested time zone
+        var nowInstant = SystemClock.Instance.GetCurrentInstant();
+        var today      = nowInstant.InZone(timeZone).Date;
+
+        // Both start AND end are in the past → reject
+        if (endDate < today)
+            throw new BusinessException("SlotBooking:DateRangeEntirelyInPast")
+                .WithData("EndDate", input.EndDate)
+                .WithData("Today",   today.ToString());
+
+        // Start is in the past but end is today or future → clamp start to today
+        string? adjustedStartDateStr = null;
+        var effectiveStart = requestedStart;
+
+        if (requestedStart < today)
+        {
+            effectiveStart       = today;
+            adjustedStartDateStr = today.ToString(); // "YYYY-MM-DD"
+        }
 
         var slots = _slotGenerator.Generate(
-            startDate, endDate, timeZone, input.SlotDuration, input.TimeZone);
+            effectiveStart, endDate, timeZone, input.SlotDuration, input.TimeZone);
 
         await _slotRepository.InsertManyAsync(slots, autoSave: true);
 
-        return new GenerateSlotsResultDto { TotalSlotsCreated = slots.Count };
+        return new GenerateSlotsResultDto
+        {
+            TotalSlotsCreated = slots.Count,
+            AdjustedStartDate = adjustedStartDateStr
+        };
     }
 
     // ── Query ─────────────────────────────────────────────────────────────────
@@ -127,6 +151,7 @@ public class SlotsAppService : ApplicationService, ISlotsAppService
         var startDate = LocalDatePattern.Iso.Parse(input.StartDate).Value;
         var endDate   = LocalDatePattern.Iso.Parse(input.EndDate).Value;
 
+        // Logical order check (before any date clamping)
         if (startDate > endDate)
             throw new BusinessException("SlotBooking:StartDateAfterEndDate");
 

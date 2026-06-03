@@ -29,6 +29,12 @@ public class GenerateSlotsInput
 public class GenerateSlotsResultDto
 {
     public int TotalSlotsCreated { get; set; }
+
+    /// <summary>
+    /// Set when the requested start date was in the past and was automatically
+    /// adjusted to today. Null when no adjustment was needed.
+    /// </summary>
+    public string? AdjustedStartDate { get; set; }
 }
 
 public class GetNextAvailableSlotsInput
