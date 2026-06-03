@@ -1,0 +1,73 @@
+{
+  "culture": "ar",
+  "texts": {
+    "AppTitle": "إدارة المواعيد الزمنية",
+    "AppSubtitle": "قم بتهيئة إنشاء المواعيد وعرض المواعيد المتاحة القادمة في المنطقة الزمنية المحددة.",
+
+    "Menu:SlotManagement": "إدارة المواعيد الزمنية",
+
+    "Label:StartDate": "تاريخ البداية",
+    "Label:EndDate": "تاريخ النهاية",
+    "Label:TimeZone": "المنطقة الزمنية",
+    "Label:SlotDuration": "مدة الفترة (بالدقائق)",
+    "Label:DisplayTimeZone": "عرض المنطقة الزمنية",
+    "Label:Status": "الحالة",
+    "Label:FromDate": "من تاريخ",
+    "Label:ToDate": "إلى تاريخ",
+    "Label:LocalStartTime": "وقت البداية المحلي",
+    "Label:LocalEndTime": "وقت النهاية المحلي",
+    "Label:Duration": "المدة (دقيقة)",
+    "Label:SearchTimeZone": "ابحث عن المنطقة الزمنية…",
+    "Label:NoMatchFound": "لا توجد نتائج.",
+    "Label:Page": "صفحة",
+
+    "Button:GenerateSlots": "إنشاء المواعيد",
+    "Button:Generating": "جارٍ إنشاء…",
+    "Button:Search": "بحث",
+    "Button:Clear": "مسح",
+    "Button:Book": "حجز",
+    "Button:PreviousPage": "الصفحة السابقة",
+    "Button:NextPage": "الصفحة التالية",
+
+    "Title:GenerateSlots": "إنشاء المواعيد",
+    "Title:AvailableSlots": "المواعيد المتاحة",
+
+    "Status:All": "الكل",
+    "Status:Available": "متاح",
+    "Status:Booked": "محجوز",
+
+    "Validation:Required": "{0} مطلوب.",
+    "Validation:StartDateRequired": "تاريخ البداية مطلوب.",
+    "Validation:EndDateRequired": "تاريخ النهاية مطلوب.",
+    "Validation:DurationRequired": "المدة مطلوبة.",
+    "Validation:DurationMin": "يجب أن تكون المدة دقيقة واحدة على الأقل.",
+    "Validation:DateOrder": "✕ يجب أن يكون تاريخ البداية قبل تاريخ النهاية أو مساوياً له.",
+    "Validation:BothInPast": "✕ كلا التاريخين في الماضي. يرجى اختيار تاريخ نهاية اليوم أو لاحقاً.",
+    "Validation:InvalidTimeZone": "معرّف المنطقة الزمنية غير صحيح.",
+    "Validation:StartDateAfterEndDate": "يجب أن يكون تاريخ البداية قبل تاريخ النهاية.",
+    "Validation:InvalidSlotDuration": "يجب أن تكون مدة الفترة أكبر من الصفر.",
+
+    "Warning:StartInPast": "⚠ تاريخ البداية في الماضي. سيتم توليد الفترات من اليوم فصاعداً.",
+
+    "Message:SlotsGenerated": "تم إنشاء {0} فترة بنجاح.",
+    "Message:SlotBooked": "تم حجز الفترة: {0}",
+    "Message:FailedGenerate": "فشل إنشاء المواعيد.",
+    "Message:FailedLoad": "فشل تحميل المواعيد.",
+    "Message:FailedBook": "فشل حجز المواعيد.",
+    "Message:Loading": "جارٍ تحميل الموعد…",
+    "Message:NoSlots": "لا توجد مواعيد تطابق الفلاتر الحالية.",
+    "Message:Showing": "عرض {0}–{1} من {2} فترة",
+    "Message:NoMatchFound": "لا توجد نتائج.",
+
+    "SlotBooking:SlotAlreadyBooked": "هذه الفترة محجوزة بالفعل.",
+    "SlotBooking:InvalidStartDate": "تاريخ البداية غير صحيح.",
+    "SlotBooking:InvalidEndDate": "تاريخ النهاية غير صحيح.",
+    "SlotBooking:StartDateAfterEndDate": "يجب أن يكون تاريخ البداية قبل تاريخ النهاية.",
+    "SlotBooking:InvalidSlotDuration": "يجب أن تكون مدة الفترة أكبر من الصفر.",
+    "SlotBooking:InvalidTimeZone": "منطقة زمنية غير صحيحة: {TimeZone}",
+    "SlotBooking:DateRangeEntirelyInPast": "نطاق التاريخ بأكمله في الماضي. يجب أن يكون تاريخ النهاية اليوم أو لاحقاً.",
+
+    "Language:English": "English",
+    "Language:Arabic": "العربية"
+  }
+}

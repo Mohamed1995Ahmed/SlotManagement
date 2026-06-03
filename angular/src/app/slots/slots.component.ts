@@ -12,62 +12,61 @@ import {
   GenerateSlotsResult,
   SlotDto,
   SlotFilter,
-  STATUS_OPTIONS,
   SUPPORTED_TIME_ZONES
 } from '../models/slot.models';
 import { SlotsService } from '../services/slots.service';
 import { TimezoneSelectorComponent } from '../shared/timezone-selector/timezone-selector.component';
+import { AbpLocalizationPipe } from '../core/localization/abp-localization.pipe';
+import { LocalizationService } from '../core/localization/localization.service';
+import { LocalDatePipe } from '../core/localization/local-date.pipe';
+import { TzNamePipe } from '../core/localization/tz-name.pipe';
 
 const WINDOW = 3;
 
-// ── Custom validators ────────────────────────────────────────────────────────
-
-/** Returns today's date string in YYYY-MM-DD (local browser time). */
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/**
- * Cross-field validator: startDate must be <= endDate.
- * Applied at the form group level.
- */
 function dateOrderValidator(group: AbstractControl): ValidationErrors | null {
   const start = group.get('startDate')?.value as string;
   const end   = group.get('endDate')?.value   as string;
-  if (start && end && start > end) {
-    return { dateOrder: true };
-  }
-  return null;
+  return start && end && start > end ? { dateOrder: true } : null;
 }
 
-/**
- * Cross-field validator: both dates must not be entirely in the past.
- * Applied at the form group level.
- */
 function bothInPastValidator(group: AbstractControl): ValidationErrors | null {
   const end   = group.get('endDate')?.value as string;
-  const today = todayStr();
-  if (end && end < today) {
-    return { bothInPast: true };
-  }
-  return null;
+  return end && end < todayStr() ? { bothInPast: true } : null;
 }
 
 @Component({
   selector: 'app-slots',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, TimezoneSelectorComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    TimezoneSelectorComponent,
+    AbpLocalizationPipe,
+    LocalDatePipe,
+    TzNamePipe
+  ],
   templateUrl: './slots.component.html',
   styleUrl: './slots.component.scss'
 })
 export class SlotsComponent implements OnInit {
   private readonly fb           = inject(FormBuilder);
   private readonly slotsService = inject(SlotsService);
+  private readonly l            = inject(LocalizationService);
 
-  readonly timeZones     = SUPPORTED_TIME_ZONES;
   readonly allTimeZones  = SUPPORTED_TIME_ZONES;
-  readonly statusOptions = STATUS_OPTIONS;
   readonly pageSize      = 10;
+
+  /** Status options — keys resolved at render time by the pipe */
+  readonly statusOptions = [
+    { labelKey: 'Status:All',       value: ''          },
+    { labelKey: 'Status:Available', value: 'available' },
+    { labelKey: 'Status:Booked',    value: 'booked'    }
+  ];
 
   private readonly DEFAULT_TZ = 'Africa/Cairo';
 
@@ -98,9 +97,8 @@ export class SlotsComponent implements OnInit {
   loadingGenerate = false;
   loadingSlots    = false;
 
-  // ── Convenience getters for template ─────────────────────────────────────
+  // ── Getters ────────────────────────────────────────────────────────────────
 
-  /** True when start is in the past but end is today/future — warn but allow. */
   get startInPastWarning(): boolean {
     const start = this.generateForm.get('startDate')?.value as string;
     const end   = this.generateForm.get('endDate')?.value   as string;
@@ -108,7 +106,6 @@ export class SlotsComponent implements OnInit {
     return !!(start && end && start < today && end >= today);
   }
 
-  // ── Pagination helpers ────────────────────────────────────────────────────
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.totalCount / this.pageSize));
   }
@@ -132,12 +129,10 @@ export class SlotsComponent implements OnInit {
     const half  = Math.floor(WINDOW / 2);
     const start = Math.max(2, this.currentPage - half + 1);
     const end   = Math.min(total - 1, start + WINDOW - 1);
-
     for (let p = start; p <= end; p++) pages.add(p);
 
     const sorted = Array.from(pages).sort((a, b) => a - b);
     const result: (number | null)[] = [];
-
     for (let i = 0; i < sorted.length; i++) {
       if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.push(null);
       result.push(sorted[i]);
@@ -146,14 +141,15 @@ export class SlotsComponent implements OnInit {
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
+
   ngOnInit(): void {
     this.loadSlots();
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────
+
   generate(): void {
     this.generateForm.markAllAsTouched();
-
     if (this.generateForm.invalid) return;
 
     this.loadingGenerate = true;
@@ -161,23 +157,24 @@ export class SlotsComponent implements OnInit {
     this.successMessage  = '';
     this.warningMessage  = '';
 
-    // Warn the user before submitting that start will be clamped server-side
     if (this.startInPastWarning) {
-      const today = todayStr();
-      this.warningMessage =
-        `Start date is in the past. Slots will be generated from ${today} onwards.`;
+      this.warningMessage = this.l.instant('Warning:StartInPast');
     }
 
     this.slotsService.generate(this.generateForm.getRawValue()).subscribe({
       next: result => {
         this.generateResult = result;
-        this.successMessage = `Generated ${result.totalSlotsCreated} slots successfully.`;
+        this.successMessage = this.l.instant(
+          'Message:SlotsGenerated',
+          [String(result.totalSlotsCreated)]
+        );
         this.loadingGenerate = false;
         this.currentPage = 0;
         this.loadSlots();
       },
       error: err => {
-        this.errorMessage    = err?.error?.error?.message ?? 'Failed to generate slots.';
+        this.errorMessage = err?.error?.error?.message
+          ?? this.l.instant('Message:FailedGenerate');
         this.warningMessage  = '';
         this.loadingGenerate = false;
       }
@@ -216,7 +213,8 @@ export class SlotsComponent implements OnInit {
           this.loadingSlots = false;
         },
         error: err => {
-          this.errorMessage = err?.error?.error?.message ?? 'Failed to load slots.';
+          this.errorMessage = err?.error?.error?.message
+            ?? this.l.instant('Message:FailedLoad');
           this.loadingSlots = false;
         }
       });
@@ -241,11 +239,15 @@ export class SlotsComponent implements OnInit {
   bookSlot(slot: SlotDto): void {
     this.slotsService.book(slot.id).subscribe({
       next: () => {
-        this.successMessage = `Slot booked: ${slot.localStartTime}`;
+        this.successMessage = this.l.instant(
+          'Message:SlotBooked',
+          [slot.localStartTime]
+        );
         this.loadSlots();
       },
       error: err => {
-        this.errorMessage = err?.error?.error?.message ?? 'Failed to book slot.';
+        this.errorMessage = err?.error?.error?.message
+          ?? this.l.instant('Message:FailedBook');
       }
     });
   }
