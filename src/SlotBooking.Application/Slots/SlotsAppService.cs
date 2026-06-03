@@ -31,35 +31,37 @@ public class SlotsAppService : ApplicationService, ISlotsAppService
         var endDate        = LocalDatePattern.Iso.Parse(input.EndDate).Value;
         var timeZone       = DateTimeZoneProviders.Tzdb[input.TimeZone];
 
-        // Determine "today" in the requested time zone
-        var nowInstant = SystemClock.Instance.GetCurrentInstant();
-        var today      = nowInstant.InZone(timeZone).Date;
+        // Capture "now" once so both the past-check and the slot filter use
+        // exactly the same instant.
+        var now   = SystemClock.Instance.GetCurrentInstant();
+        var today = now.InZone(timeZone).Date;
 
-        // Both start AND end are in the past → reject
+        // Both start AND end are in the past → nothing useful to generate
         if (endDate < today)
             throw new BusinessException("SlotBooking:DateRangeEntirelyInPast")
                 .WithData("EndDate", input.EndDate)
                 .WithData("Today",   today.ToString());
 
-        // Start is in the past but end is today or future → clamp start to today
-        string? adjustedStartDateStr = null;
-        var effectiveStart = requestedStart;
-
-        if (requestedStart < today)
-        {
-            effectiveStart       = today;
-            adjustedStartDateStr = today.ToString(); // "YYYY-MM-DD"
-        }
+        // When start is in the past, still iterate from startDate so the day
+        // loop covers today — but pass `now` as notBefore so the generator
+        // skips every individual slot that has already ended.
+        var effectiveStart     = requestedStart < today ? today : requestedStart;
+        var startWasClamped    = requestedStart < today;
 
         var slots = _slotGenerator.Generate(
-            effectiveStart, endDate, timeZone, input.SlotDuration, input.TimeZone);
+            effectiveStart,
+            endDate,
+            timeZone,
+            input.SlotDuration,
+            input.TimeZone,
+            notBefore: startWasClamped ? now : null);   // ← precise instant cutoff
 
         await _slotRepository.InsertManyAsync(slots, autoSave: true);
 
         return new GenerateSlotsResultDto
         {
             TotalSlotsCreated = slots.Count,
-            AdjustedStartDate = adjustedStartDateStr
+            AdjustedStartDate = startWasClamped ? today.ToString() : null
         };
     }
 

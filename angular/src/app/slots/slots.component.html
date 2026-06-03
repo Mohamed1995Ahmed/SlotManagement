@@ -31,9 +31,12 @@
 
         <label>
           Time zone
-          <select formControlName="timeZone">
-            <option *ngFor="let tz of timeZones" [value]="tz">{{ tz }}</option>
-          </select>
+          <app-timezone-selector
+            [allZones]="allTimeZones"
+            [value]="generateForm.get('timeZone')?.value ?? ''"
+            (valueChange)="onGenerateTimezoneChange($event)"
+            placeholder="Search time zone…">
+          </app-timezone-selector>
         </label>
 
         <label>
@@ -85,9 +88,12 @@
       <h2>Available Slots</h2>
       <label>
         Display time zone
-        <select [ngModel]="viewTimeZone" (ngModelChange)="onTimeZoneChange($event)">
-          <option *ngFor="let tz of timeZones" [value]="tz">{{ tz }}</option>
-        </select>
+        <app-timezone-selector
+          [allZones]="allTimeZones"
+          [value]="viewTimeZone"
+          (valueChange)="onTimeZoneChange($event)"
+          placeholder="Search time zone…">
+        </app-timezone-selector>
       </label>
     </div>
 
